@@ -8,21 +8,22 @@ class Node {
     int *key, size;
     string *value;
     Node **ptr;
+    friend class BPlusTree;
 
     public:
-    Node();
+    Node(int);
     ~Node();
 };
 
 class BPlusTree{
-    int keys;
+    int keysMax;
     Node *root;
     
     public:
         BPlusTree(int);
         BPlusTree(BPlusTree &t);
         //~BPlusTree();
-        //bool insert(int, string);
+        bool insert(int, string);
         //bool remove(int);
         //string find(int);
         //void printKeys();
