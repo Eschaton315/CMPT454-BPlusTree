@@ -24,6 +24,7 @@ class BPlusTree{
         BPlusTree(BPlusTree &t);
         //~BPlusTree();
         bool insert(int, string);
+        void insertInternal(int, Node*,Node*);
         //bool remove(int);
         //string find(int);
         //void printKeys();
