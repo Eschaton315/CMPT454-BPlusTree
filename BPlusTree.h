@@ -26,11 +26,12 @@ class BPlusTree{
         bool insert(int, string);
         void insertInternal(int, string, Node*,Node*);
         Node *getParent(Node*, Node*);
-        //bool remove(int);
-        //string find(int);
+        bool remove(int);
+        string find(int);
         void printKeys();
         void printKeysRecurse(Node*);
         void printValues();
+        void printValuesRecurse(Node*);
 
 };
 

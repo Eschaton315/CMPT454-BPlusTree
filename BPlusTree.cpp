@@ -43,6 +43,11 @@ bool BPlusTree::insert(int n, string x){
         root->size = 1;
         return true;
     }else{
+//check if there is a value in the key.
+        if(!find(n).empty()){
+        cout<<"Key already being used"<<endl;
+        return false;
+        }
 //If first node exists, traverse down to the leaf nodes.
         Node *current =  root;
         Node *parent;
@@ -66,7 +71,6 @@ bool BPlusTree::insert(int n, string x){
                 i++;
             }
             for (int j = current->size; j>i ; j--){
-//*test if the string also needs to be updated!!
                 current->key[j] = current->key[j-1];
                 current->value[j] = current->value[j-1];
             }
@@ -90,15 +94,15 @@ bool BPlusTree::insert(int n, string x){
             while(n > tempKeys[i] && i<keysMax){
                 i++;
             }
-            for (int j = keysMax + 1; j > i; j--) {
+            for (int j = keysMax /*+ 1*/; j > i; j--) {
                 tempKeys[j] = tempKeys[j-1];
-                //tempValues[j] = tempValues[j-1];
+                tempValues[j] = tempValues[j-1];
             }
             tempKeys[i] = n;
             tempValues[i] = x;
             newLeaf->isLeaf = true;
             current->size = (keysMax+1)/2;
-            newLeaf->size = keysMax + 1 -(keysMax + 1) / 2;
+            newLeaf->size = keysMax + 1 - current->size;
             current->ptr[current->size] = newLeaf;
             newLeaf->ptr[newLeaf->size] = current->ptr[keysMax];
             current->ptr[keysMax] = NULL;
@@ -108,7 +112,7 @@ bool BPlusTree::insert(int n, string x){
             }
             for(i = 0, j = current->size; i < newLeaf->size; i++, j++){
                 newLeaf->key[i] = tempKeys[j];
-                newLeaf->value[i] = tempKeys[j];
+                newLeaf->value[i] = tempValues[j];
             }
 //Creating new root if we had to split the previous root            
             if(current == root) {
@@ -138,7 +142,6 @@ void BPlusTree::insertInternal(int n, string x, Node *current, Node *child){
         while (n > current->key[i] && i < current->size){
             i++;
         }
-//*test if the string also needs to be updated!!
         for (int j = current->size; j > i; j--) {
             current->key[j] = current->key[j-1];
             current->value[j] = current->value[j-1];
@@ -167,7 +170,7 @@ void BPlusTree::insertInternal(int n, string x, Node *current, Node *child){
         while (n > tempKeys[i] && i < keysMax){
             i++;
         }
-        for(int j = keysMax + 1; j > i; j--){
+        for(int j = keysMax /*+ 1*/; j > i; j--){
             tempKeys[j] = tempKeys[j-1];
             tempValues[j] = tempValues[j-1];
         }
@@ -223,6 +226,22 @@ Node *BPlusTree::getParent(Node *current, Node *child){
 }
 
 
+bool BPlusTree::remove(int n){
+    if(root == NULL){
+        cout << "empty tree" << endl;
+        return false;
+    }else{
+//Search if the key exists
+        Node *current = root;
+        Node *parent;
+        int leftSib, rightSib;
+        while (!current->isLeaf){
+            
+        }
+    }
+}
+
+
 void BPlusTree::printKeys(){
     Node *current = root;
     printKeysRecurse(current);   
@@ -231,7 +250,7 @@ void BPlusTree::printKeys(){
 void BPlusTree::printKeysRecurse(Node *current){
     if(current != NULL){
         cout <<"[";
-        for(int i=0; i<current->size ; i++){
+        for(int i = 0; i < current->size; i++){
             cout << current->key[i];
             if(i < current->size - 1){
                  cout << ",";
@@ -242,7 +261,60 @@ void BPlusTree::printKeysRecurse(Node *current){
             cout << endl;
             for(int i=0; i<current->size + 1; i++){
                 printKeysRecurse(current->ptr[i]);
+                if(i == current->size){
+                    cout<< endl;
+                }
             }
         }
+    }
+}
+
+void BPlusTree::printValues(){
+    Node *current  = root;
+    printValuesRecurse(current);
+}
+
+void BPlusTree::printValuesRecurse(Node* current){
+    if(current != NULL){
+        for(int i = 0; i<current->size; i++){
+            if(current->isLeaf){
+                cout << current->value[i];
+                cout << endl;
+            }
+        }
+        if(!current->isLeaf){
+            for(int i = 0; i<current->size + 1; i++){
+                printValuesRecurse(current->ptr[i]);
+            }
+        }
+    }
+}
+
+
+string BPlusTree::find(int n){
+    if(root == NULL){
+        cout<<"empty tree"<<endl;
+        return {};
+    }
+    else{
+        Node *current = root;
+        while (!current->isLeaf){
+            for(int i = 0; i < current->size; i++){
+                if(n < current->key[i]){
+                    current = current->ptr[i];
+                    break;
+                }
+                if(i == current->size - 1){
+                    current = current->ptr[i+1];
+                    break;
+                }
+            }
+        }
+        for(int i = 0; i < current->size; i++){
+            if(current->key[i] == n){
+                return current->value[i];
+            }
+        }
+        return {};
     }
 }

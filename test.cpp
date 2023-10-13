@@ -23,9 +23,10 @@ void simpleTest()
     bp1.insert(9, "nine");
     bp1.insert(5, "five");
     bp1.printKeys();
-    /*
+    bp1.printValues();
+   
     cout << "find 3: " << bp1.find(3) << " (three)" << endl;
-    bp1.remove(7);
+    //bp1.remove(7);
     cout << "find 7: " << bp1.find(7) << " (<empty>)" << endl << endl;
 
     
@@ -38,7 +39,7 @@ void simpleTest()
     bp1.printValues();
     cout << endl << "CHECK" << endl;
     cout << "one" << endl << "three" << endl << "five" << endl << "nine" << endl;
-
+    /*
     
     // Copy constructor and op=
     BPlusTree bp2(bp1);
