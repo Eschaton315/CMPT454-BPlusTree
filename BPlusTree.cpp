@@ -62,12 +62,13 @@ void BPlusTree::destroyTree(Node* node) {
         for (int i = 0; i <= node->size; i++) {
             destroyTree(node->ptr[i]);
         }
+    }else{
+        for (int i = 0; i <= node->size; i++) {
+            remove(node->key[i]);
+        }
     }
 
-    delete[] node->key;
-    delete[] node->value;
-    delete[] node->ptr;
-    delete node;
+    
 }
 
 
@@ -80,8 +81,6 @@ Node::Node(int n){
 }
 
 bool BPlusTree::insert(int n, string x){
-    
-
 //creating the first insertion as the root.
     if (root == NULL){
         root = new Node(keysMax);
@@ -118,7 +117,7 @@ bool BPlusTree::insert(int n, string x){
             while (n > current->key[i] && i < current->size){
                 i++;
             }
-            for (int j = current->size; j>i ; j--){
+            for (int j = current->size; j > i ; j--){
                 current->key[j] = current->key[j-1];
                 current->value[j] = current->value[j-1];
             }
@@ -126,14 +125,14 @@ bool BPlusTree::insert(int n, string x){
             current->key[i] = n;
             current->value[i] = x;
             current->size++;
-            current->ptr[current->size] = current->ptr[current->size-1];
+            current->ptr[current->size] = current->ptr[current->size - 1];
             current->ptr[current->size-1] = NULL;
             return true;
         }else{
 //If nodes are full, create a new node for splitting
             Node *newLeaf = new Node(keysMax);
             int tempKeys[keysMax+1];
-            string tempValues[keysMax+1];
+            string *tempValues = new string[keysMax+1];
             for (int i = 0; i<keysMax; i++){
                 tempKeys[i] = current->key[i];
                 tempValues[i] = current->value[i];
@@ -199,13 +198,13 @@ void BPlusTree::insertInternal(int n, string x, Node *current, Node *child){
         }
         current->key[i] = n;
         current->value[i] = x;
-        current->size++;;
+        current->size++;
         current->ptr[i+1] = child;
     }else{
 //create new internal node and split the current one
         Node *newInternal = new Node(keysMax);
         int tempKeys[keysMax + 1];
-        string tempValues[keysMax + 1];
+        string *tempValues = new string[keysMax + 1];
         Node *tempPtr[keysMax + 2];
         for (int i = 0; i < keysMax; i++){
             tempKeys[i] = current->key[i];
