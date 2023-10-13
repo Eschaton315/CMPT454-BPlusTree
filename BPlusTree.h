@@ -24,11 +24,13 @@ class BPlusTree{
         BPlusTree(BPlusTree &t);
         //~BPlusTree();
         bool insert(int, string);
-        void insertInternal(int, Node*,Node*);
+        void insertInternal(int, string, Node*,Node*);
+        Node *getParent(Node*, Node*);
         //bool remove(int);
         //string find(int);
-        //void printKeys();
-        //void printValues();
+        void printKeys();
+        void printKeysRecurse(Node*);
+        void printValues();
 
 };
 
