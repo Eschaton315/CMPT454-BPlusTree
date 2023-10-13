@@ -4,20 +4,72 @@
 #include<stdlib.h>
 using namespace std;
 
-
+//constrctor
 BPlusTree::BPlusTree(int n){
-
     keysMax = n;
     root = NULL;
-
 }
 
+//copy constructor
 BPlusTree::BPlusTree(BPlusTree &t){
-
     keysMax = t.keysMax;
-    root = t.root;
-
+    root = copyNode(t.root);
 }
+
+//overloaded assigned operator
+BPlusTree& BPlusTree::operator=(BPlusTree &t){
+    if (this == &t){
+        return *this;
+    }
+    this->~BPlusTree();
+    keysMax = t.keysMax;
+    root = copyNode(t.root);
+    return *this;
+}
+
+Node *BPlusTree::copyNode(Node* original){
+    if(original == NULL){
+        return NULL;
+    }
+    Node* newNode = new Node(keysMax);
+    newNode->size = original->size;
+    newNode->isLeaf = original->isLeaf;
+    
+    for (int i = 0; i < original->size; i++) {
+        newNode->key[i] = original->key[i];
+        newNode->value[i] = original->value[i];
+    }
+    
+    if (!original->isLeaf) {
+        for (int i = 0; i <= original->size; i++) {
+            newNode->ptr[i] = copyNode(original->ptr[i]);
+        }
+    }
+    return newNode; 
+}
+
+//destructor
+BPlusTree::~BPlusTree() {
+    destroyTree(root);
+}
+
+void BPlusTree::destroyTree(Node* node) {
+    if (node == NULL) {
+        return;
+    }
+
+    if (!node->isLeaf) {
+        for (int i = 0; i <= node->size; i++) {
+            destroyTree(node->ptr[i]);
+        }
+    }
+
+    delete[] node->key;
+    delete[] node->value;
+    delete[] node->ptr;
+    delete node;
+}
+
 
 Node::Node(int n){
 
@@ -26,10 +78,6 @@ Node::Node(int n){
     ptr = new Node *[n+1];
 
 }
-
-
-
-//#todo: once the search is implemented, add a false bool if the key already exists.
 
 bool BPlusTree::insert(int n, string x){
     
@@ -206,6 +254,287 @@ void BPlusTree::insertInternal(int n, string x, Node *current, Node *child){
     }
 }
 
+
+
+bool BPlusTree::remove(int n){
+    if(root == NULL){
+        cout << "empty tree" << endl;
+        return false;
+    }else{
+//Search if the key exists
+        Node *current = root;
+        Node *parent;
+        int leftSib, rightSib;
+        while (!current->isLeaf){
+            for (int i = 0; i< current->size; i++){
+                parent = current;
+                leftSib = i - 1;
+                rightSib = i + 1;
+                if(n < current->key[i]){
+                    current = current->ptr[i];
+                    break;
+                }
+                if(i == current->size - 1){
+                    leftSib = i;
+                    rightSib = + 2;
+                    current = current->ptr[i+1];
+                    break;
+                }
+            }
+        }
+        bool exists = false;
+        int nDelete;
+        for (nDelete = 0; nDelete < current->size; nDelete++){
+            if(current->key[nDelete] == n){
+                exists = true;
+                break;
+            }
+        }
+        if(!exists){
+//if the key doesn't exist, return false, otherwise, remove key and its value
+            cout<<"key not found"<<endl;
+            return false;
+        }
+        for(int i = nDelete; i < current->size; i++){
+            current->key[i] = current->key[i+1];
+            current->value[i] = current->value[i+1];
+        }
+        current->size--;
+//Dealing with tree if the removal happenes at the root node
+        if(current == root){
+            for(int i = 0; i < keysMax + 1; i++){
+                current->ptr[i] = NULL;
+            }
+            if(current->size == 0){
+                cout<<"tree is now empty"<<endl;
+                delete[] current->key;
+                delete[] current->value;
+                delete[] current->ptr;
+                delete[] current;
+                root = NULL;
+            }
+            return true;
+        }
+//If the amount of children still meets the B+Tree's properties
+        current->ptr[current->size] = current->ptr[current->size + 1];
+        current->ptr[current->size + 1] = NULL;
+        if(current->size >= (keysMax + 1) / 2){
+            return true;
+        }
+//Redistribute to the left side
+        if(leftSib >= 0){
+            Node *leftNode = parent->ptr[leftSib];
+            if (leftNode->size >= (keysMax + 1) / 2 + 1){
+                for(int i = current->size; i > 0; i--){
+                    current->key[i] = current->key[i-1];
+                    current->value[i] = current->value[i-1];
+                }
+                current->size++;
+                current->ptr[current->size] = current->ptr[current->size - 1];
+                current->ptr[current->size - 1] = NULL;
+                current->key[0] = leftNode->key[leftNode->size - 1];
+                current->value[0] = leftNode->key[leftNode->size - 1];
+                leftNode->size--;
+                leftNode->ptr[leftNode->size] = current;
+                leftNode->ptr[leftNode->size + 1] = NULL;
+                parent->key[leftSib] = current->key[0];
+                parent->value[leftSib] = current->value[0];
+                return true;
+            }
+        }
+//Redistribute to the right side
+        if(rightSib <= parent->size){
+            Node *rightNode = parent->ptr[rightSib];
+            if(rightNode->size >= (keysMax + 1) / 2 + 1){
+                current->size++;
+                current->ptr[current->size] = current->ptr[current->size - 1];
+                current->ptr[current->size - 1] = NULL;
+                current->key[current->size - 1] = rightNode->key[0];
+                current->value[current->size - 1] = rightNode->value[0];
+                rightNode->size--;
+                rightNode->ptr[rightNode->size] = rightNode->ptr[rightNode->size + 1];
+                rightNode->ptr[rightNode->size + 1 ] = NULL;
+                for(int i = 0; i < rightNode->size; i++){
+                    rightNode->key[i] = rightNode->key[i+1];
+                    rightNode->value[i] = rightNode->value[i+1];
+                }
+                parent->key[rightSib - 1] = rightNode->key[0];
+                parent->value[rightSib - 1] = rightNode->value[0];
+                return true;
+            }
+        }
+//coalesce to the left side
+        if(leftSib >= 0){
+            Node *leftNode = parent->ptr[leftSib];
+            for (int i = leftNode->size, j = 0; j < current->size; i++,j++){
+               leftNode->key[i] = current->key[j];
+               leftNode->value[i] = current->value[j]; 
+            }
+            leftNode->ptr[leftNode->size] = NULL;
+            leftNode->size += current->size;
+            leftNode->ptr[leftNode->size] = current->ptr[current->size];
+            removeInternal(parent->key[leftSib],parent->value[leftSib], parent, current);
+            
+        }
+//coalesce to the right side
+        if(rightSib <= parent->size){
+            Node *rightNode = parent->ptr[rightSib];
+            for(int i = current->size, j = 0; j < rightNode->size; i++, j++){
+                current->key[i] = rightNode->key[j];
+                current->value[i] = rightNode->value[j];
+            }
+            current->ptr[current->size] = NULL;
+            current->size += rightNode->size;
+            current->ptr[current->size] = rightNode->ptr[rightNode->size];
+            removeInternal(parent->key[rightSib - 1],parent->value[rightSib - 1], parent, rightNode);
+            
+        }
+        return true;
+    }
+}
+
+
+void BPlusTree::removeInternal(int n, string x, Node *current, Node *child){
+//removing necessary internal nodes if the parent is a root
+    if(current == root && current->size == 1){
+        if(current->ptr[1] == child){
+            delete[] child->key;
+            delete[] child->value;
+            delete[] child->ptr;
+            delete[] child;
+            root = current->ptr[0];
+            delete[] current->key;
+            delete[] current->value;
+            delete[] current->ptr;
+            delete[] current;
+            return;
+        }else if(current->ptr[0] == child){
+            delete[] child->key;
+            delete[] child->value;
+            delete[] child->ptr;
+            delete[] child;
+            root = current->ptr[1];
+            delete[] current->key;
+            delete[] current->value;
+            delete[] current->ptr;
+            delete[] current;
+            return;
+        }  
+    }
+    //removing necessary internal nodes if the parent is not a root
+    int nDelete;
+    for(nDelete = 0; nDelete < current->size; nDelete++){
+        if(current->key[nDelete] == n){
+            break;
+        }
+    }
+    for(int i = nDelete; i< current->size; i++){
+        current->key[i] = current->key[i+1];
+        current->value[i] = current->value[i+1];
+    }
+    for(nDelete = 0; nDelete < current->size + 1; nDelete++){
+        if(current->ptr[nDelete] == child){
+            break;
+        }
+    }
+    for(int i = nDelete; i < current->size + 1; i++){
+        current->ptr[i]  = current->ptr[i+1];
+    }
+    current->size--;
+    if(current->size >= (keysMax + 1) / 2 - 1){
+        return;
+    }
+    if(current == root){
+        return;
+    }
+    Node *parent = getParent(root, current);
+    int leftSib, rightSib;
+    for(nDelete = 0; nDelete < parent->size + 1; nDelete++){
+        if(parent->ptr[nDelete] == current){
+            leftSib = nDelete - 1;
+            rightSib = nDelete + 1;
+            break;
+        }
+    }
+    //redistribute inner nodes to the left
+    if(leftSib >= 0) {
+        Node *leftNode = parent->ptr[leftSib];
+        if (leftNode->size >= (keysMax + 1) / 2){
+            for(int i = current->size; i > 0; i--){
+                current->key[i] = current->key[i - 1];
+                current->value[i] = current->value[i - 1];
+            }
+            current->key[0] = parent->key[leftSib];
+            current->value[0] = parent->key[leftSib];
+            parent->key[leftSib] = leftNode->key[leftNode->size - 1];
+            parent->value[leftSib] = leftNode->value[leftNode-> size - 1];
+            for(int i = current->size + 1; i > 0; i--){
+                current->ptr[i] = current->ptr[i-1];
+            }
+            current->ptr[0] = leftNode->ptr[leftNode->size];
+            current->size++;
+            leftNode->size--;
+            return;
+        }
+    }
+    //redistribute inner nodes to the right
+    if(rightSib <= parent->size){
+        Node *rightNode = parent->ptr[rightSib];
+        if(rightNode->size >= (keysMax + 1) / 2){
+            current->key[current->size] = parent->key[nDelete];
+            current->value[current->size] = parent->value[nDelete];
+            parent->key[nDelete] = rightNode->key[0];
+            parent->value[nDelete] = rightNode->value[0];
+            for(int i = 0; i < rightNode->size - 1; i++){
+                rightNode->key[i] = rightNode->key[i+1];
+                rightNode->value[i] = rightNode->value[i+1];
+            }
+            current->ptr[current->size + 1] = rightNode->ptr[0];
+            for (int i = 0; i < rightNode->size; i++){
+                rightNode->ptr[i] = rightNode->ptr[i + 1];   
+            }
+            current->size++;
+            rightNode->size--;
+            return;
+        }
+    }
+    //coalesce inner node to the left
+    if(leftSib >= 0){
+        Node *leftNode = parent->ptr[leftSib];
+        leftNode->key[leftNode->size] = parent->key[leftSib];
+        leftNode->value[leftNode->size] = parent->key[leftSib];
+        for(int i = leftNode->size + 1, j = 0; j < current->size; j++){
+            leftNode->key[i] = current->key[j];
+            leftNode->value[i] = current->value[j];
+        }
+        for(int i = leftNode->size + 1, j = 0; j < current->size + 1; j++){
+            leftNode->ptr[i] = current->ptr[j];
+            current->ptr[j] = NULL;
+        } 
+        leftNode->size += current->size + 1;
+        current->size = 0;
+        removeInternal(parent->key[leftSib], parent->value[leftSib], parent, current);
+    }
+    //coalesce inner node to the right
+    if(rightSib <= parent->size){
+        Node *rightNode = parent->ptr[rightSib];
+        current->key[current->size] = parent->key[rightSib - 1];
+        current->value[current->size] = parent->value[rightSib - 1];
+        for(int i = current->size + 1, j = 0; j < rightNode->size; j++){
+            current->key[i] = rightNode->key[j];
+            current->value[i] = rightNode->value[j];
+        }
+        for(int i = current->size + 1, j = 0; j < rightNode->size + 1; j++){
+            current->ptr[i] = rightNode->ptr[j];
+            rightNode->ptr[j] = NULL;
+        }
+        current->size += rightNode->size + 1;
+        rightNode->size = 0;
+        removeInternal(parent->key[rightSib - 1], parent->value[rightSib - 1], parent, rightNode);
+    }
+}
+
+
 Node *BPlusTree::getParent(Node *current, Node *child){
     Node *parent;
     if(current->isLeaf || (current->ptr[0])->isLeaf){
@@ -226,18 +555,32 @@ Node *BPlusTree::getParent(Node *current, Node *child){
 }
 
 
-bool BPlusTree::remove(int n){
+string BPlusTree::find(int n){
+//traverse down to find if the key exists. Return empty string if not found
     if(root == NULL){
-        cout << "empty tree" << endl;
-        return false;
-    }else{
-//Search if the key exists
+        cout<<"empty tree"<<endl;
+        return {};
+    }
+    else{
         Node *current = root;
-        Node *parent;
-        int leftSib, rightSib;
         while (!current->isLeaf){
-            
+            for(int i = 0; i < current->size; i++){
+                if(n < current->key[i]){
+                    current = current->ptr[i];
+                    break;
+                }
+                if(i == current->size - 1){
+                    current = current->ptr[i+1];
+                    break;
+                }
+            }
         }
+        for(int i = 0; i < current->size; i++){
+            if(current->key[i] == n){
+                return current->value[i];
+            }
+        }
+        return {};
     }
 }
 
@@ -269,10 +612,12 @@ void BPlusTree::printKeysRecurse(Node *current){
     }
 }
 
+
 void BPlusTree::printValues(){
     Node *current  = root;
     printValuesRecurse(current);
 }
+
 
 void BPlusTree::printValuesRecurse(Node* current){
     if(current != NULL){
@@ -290,31 +635,3 @@ void BPlusTree::printValuesRecurse(Node* current){
     }
 }
 
-
-string BPlusTree::find(int n){
-    if(root == NULL){
-        cout<<"empty tree"<<endl;
-        return {};
-    }
-    else{
-        Node *current = root;
-        while (!current->isLeaf){
-            for(int i = 0; i < current->size; i++){
-                if(n < current->key[i]){
-                    current = current->ptr[i];
-                    break;
-                }
-                if(i == current->size - 1){
-                    current = current->ptr[i+1];
-                    break;
-                }
-            }
-        }
-        for(int i = 0; i < current->size; i++){
-            if(current->key[i] == n){
-                return current->value[i];
-            }
-        }
-        return {};
-    }
-}
